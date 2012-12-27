@@ -1,0 +1,24 @@
+<com.darktiny.view.SlideMenuLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/slide_menu"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+    <fragment
+        android:id="@+id/right_menu"
+        android:layout_width="0px"
+        android:layout_height="match_parent"
+        class="" />
+
+    <fragment
+        android:id="@+id/left_menu"
+        android:layout_width="0px"
+        android:layout_height="match_parent"
+        class="" />
+
+    <FrameLayout
+        android:id="@+id/main_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#ECECEC" >
+
+</com.darktiny.view.SlideMenuLayout>
