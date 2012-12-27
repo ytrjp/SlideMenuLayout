@@ -2,6 +2,7 @@ package com.darktiny.view;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.MotionEvent;
@@ -13,22 +14,23 @@ public class SlideMenuLayout extends ViewGroup {
 
 	public static final String TAG = "SlideMenuLayout";
 
-	private int verticalMinDistance = 50;
-	private int minVelocity = 6000;
+	private static final int STATE_NORMAL = 0x0;
+	private static final int STATE_SCROLLING = 0x1;
+	private static final int MIN_VELOCITY = 6000;
+	private static final int MIN_VERTICAL_DISTANCE = 50;
 
 	private float mDownMotionX;
 	private float mDownMotionY;
+	private int mTouchState = STATE_NORMAL;
 
 	private float mLeftMenuWidth = 0.25F;
 	private int mLeftMenuWidthPixels = 0;
 	private View mLeftSlideMenu;
-	@SuppressWarnings("unused")
-	private boolean mLeftSlideMenuEnabled;
+	private boolean mLeftSlideMenuEnabled = false;
 	private float mRightMenuWidth = 0.75F;
 	private int mRightMenuWidthPixels = 0;
 	private View mRightSlideMenu;
-	@SuppressWarnings("unused")
-	private boolean mRightSlideMenuEnabled;
+	private boolean mRightSlideMenuEnabled = false;
 
 	private Scroller mScroller;
 	private GestureDetector mGestureDetector;
@@ -117,8 +119,8 @@ public class SlideMenuLayout extends ViewGroup {
 		mLeftSlideMenu = findViewById(id);
 	}
 
-	public void setLeftSlideMenuEnabled(boolean enabled) {
-		mLeftSlideMenuEnabled = enabled;
+	public boolean getLeftSlideMenuEnabled() {
+		return mLeftSlideMenuEnabled;
 	}
 
 	public void setRightMenuWidth(float width) {
@@ -135,14 +137,30 @@ public class SlideMenuLayout extends ViewGroup {
 		mRightSlideMenu = findViewById(id);
 	}
 
-	public void setRightSlideMenuEnabled(boolean enabled) {
-		mRightSlideMenuEnabled = enabled;
+	public boolean getRightSlideMenuEnabled() {
+		return mRightSlideMenuEnabled;
 	}
 
 	private void smoothHorizontalScrollTo(int fx) {
 		int dx = fx - mScroller.getFinalX();
 		mScroller.startScroll(mScroller.getFinalX(), 0, dx, 0);
 		postInvalidate();
+	}
+
+	public void openLeftSlideMenu() {
+		mLeftSlideMenuEnabled = true;
+		smoothHorizontalScrollTo((int) -getLeftMenuWidthF());
+	}
+
+	public void openRightSlideMenu() {
+		mRightSlideMenuEnabled = true;
+		smoothHorizontalScrollTo((int) getRightMenuWidthF());
+	}
+
+	public void reset() {
+		mLeftSlideMenuEnabled = false;
+		mRightSlideMenuEnabled = false;
+		smoothHorizontalScrollTo(0);
 	}
 
 	@Override
@@ -161,7 +179,10 @@ public class SlideMenuLayout extends ViewGroup {
 
 	@Override
 	public boolean onInterceptTouchEvent(MotionEvent ev) {
-		switch (ev.getAction()) {
+		final int action = ev.getAction();
+		if (action == MotionEvent.ACTION_MOVE && mTouchState == STATE_SCROLLING)
+			return true;
+		switch (action) {
 		case MotionEvent.ACTION_DOWN:
 			mDownMotionX = ev.getX();
 			mDownMotionY = ev.getY();
@@ -170,10 +191,10 @@ public class SlideMenuLayout extends ViewGroup {
 		case MotionEvent.ACTION_MOVE:
 			final float x = ev.getX();
 			final float y = ev.getY();
-			final int xDiff = (int) Math.abs(x - mDownMotionX);
-			final int yDiff = (int) Math.abs(y - mDownMotionY);
-			if (xDiff > 2 * yDiff)
+			if (Math.abs(x - mDownMotionX) > 2 * Math.abs(y - mDownMotionY)) {
+				mTouchState = STATE_SCROLLING;
 				return true;
+			}
 			break;
 		}
 		return super.onInterceptTouchEvent(ev);
@@ -183,17 +204,18 @@ public class SlideMenuLayout extends ViewGroup {
 	public boolean onTouchEvent(MotionEvent ev) {
 		switch (ev.getAction()) {
 		case MotionEvent.ACTION_UP:
+			mTouchState = STATE_NORMAL;
 			final int pos = getScrollX();
 			if (pos < 0) {
 				if (-pos > getLeftMenuWidthF() / 2)
-					smoothHorizontalScrollTo((int) -getLeftMenuWidthF());
+					openLeftSlideMenu();
 				else
-					smoothHorizontalScrollTo(0);
+					reset();
 			} else if (pos > 0) {
 				if (pos > getRightMenuWidthF() / 2)
-					smoothHorizontalScrollTo((int) getRightMenuWidthF());
+					openRightSlideMenu();
 				else
-					smoothHorizontalScrollTo(0);
+					reset();
 			}
 			break;
 		}
@@ -210,10 +232,11 @@ public class SlideMenuLayout extends ViewGroup {
 		@Override
 		public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
 			final int dis = (int) ((distanceX - 0.5) / 1.0) + mScroller.getFinalX();
-			if (dis < 0 && Math.abs(dis) > getLeftMenuWidthF())
-				smoothHorizontalScrollTo((int) -getLeftMenuWidthF());
-			else if (dis > 0 && Math.abs(dis) > getRightMenuWidthF())
-				smoothHorizontalScrollTo((int) getRightMenuWidthF());
+			Log.d(TAG, dis + "");
+			if (dis < 0 && Math.abs(dis) >= getLeftMenuWidthF())
+				openLeftSlideMenu();
+			else if (dis > 0 && Math.abs(dis) >= getRightMenuWidthF())
+				openRightSlideMenu();
 			else
 				smoothHorizontalScrollTo(dis);
 			return false;
@@ -221,10 +244,10 @@ public class SlideMenuLayout extends ViewGroup {
 
 		@Override
 		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-			if (e1.getX() - e2.getX() > verticalMinDistance && Math.abs(velocityX) > minVelocity)
-				smoothHorizontalScrollTo((int) getRightMenuWidthF());
-			else if (e2.getX() - e1.getX() > verticalMinDistance && Math.abs(velocityX) > minVelocity)
-				smoothHorizontalScrollTo((int) -getLeftMenuWidthF());
+			if (e1.getX() - e2.getX() > MIN_VERTICAL_DISTANCE && Math.abs(velocityX) > MIN_VELOCITY)
+				openRightSlideMenu();
+			else if (e2.getX() - e1.getX() > MIN_VERTICAL_DISTANCE && Math.abs(velocityX) > MIN_VELOCITY)
+				openLeftSlideMenu();
 			return super.onFling(e1, e2, velocityX, velocityY);
 		}
 	}
