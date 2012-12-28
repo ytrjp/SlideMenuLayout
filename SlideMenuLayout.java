@@ -13,8 +13,6 @@ public class SlideMenuLayout extends ViewGroup {
 
 	protected static final int TOUCH_STATE_NORMAL = 0x0;
 	protected static final int TOUCH_STATE_SCROLLING = 0x1;
-	protected static final int MIN_VELOCITY = 6000;
-	protected static final int MIN_VERTICAL_DISTANCE = 50;
 	protected static final float SCROLL_COEFFICIENT = 1.0F;
 
 	private float mLeftMenuWidth = 0.25F;
@@ -202,17 +200,12 @@ public class SlideMenuLayout extends ViewGroup {
 		case MotionEvent.ACTION_UP:
 			mTouchState = TOUCH_STATE_NORMAL;
 			final int pos = getScrollX();
-			if (pos < 0) {
-				if (-pos > getLeftMenuWidthF() / 2)
-					openLeftSlideMenu();
-				else
-					reset();
-			} else if (pos > 0) {
-				if (pos > getRightMenuWidthF() / 2)
-					openRightSlideMenu();
-				else
-					reset();
-			}
+			if (-pos > getLeftMenuWidthF() / 2)
+				openLeftSlideMenu();
+			else if (pos > getRightMenuWidthF() / 2)
+				openRightSlideMenu();
+			else
+				reset();
 			break;
 		}
 		return mGestureDetector.onTouchEvent(ev);
@@ -228,22 +221,13 @@ public class SlideMenuLayout extends ViewGroup {
 		@Override
 		public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
 			final int dis = (int) (distanceX / SCROLL_COEFFICIENT) + mScroller.getFinalX();
-			if (dis < 0 && Math.abs(dis) >= getLeftMenuWidthF())
+			if (-dis >= getLeftMenuWidthF())
 				openLeftSlideMenu();
-			else if (dis > 0 && Math.abs(dis) >= getRightMenuWidthF())
+			else if (dis >= getRightMenuWidthF())
 				openRightSlideMenu();
 			else
 				smoothHorizontalScrollTo(dis);
 			return false;
-		}
-
-		@Override
-		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-			if (e1.getX() - e2.getX() > MIN_VERTICAL_DISTANCE && Math.abs(velocityX) > MIN_VELOCITY)
-				openRightSlideMenu();
-			else if (e2.getX() - e1.getX() > MIN_VERTICAL_DISTANCE && Math.abs(velocityX) > MIN_VELOCITY)
-				openLeftSlideMenu();
-			return super.onFling(e1, e2, velocityX, velocityY);
 		}
 	}
 }
