@@ -2,7 +2,6 @@ package com.darktiny.view;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.MotionEvent;
@@ -12,16 +11,11 @@ import android.widget.Scroller;
 
 public class SlideMenuLayout extends ViewGroup {
 
-	public static final String TAG = "SlideMenuLayout";
-
-	private static final int STATE_NORMAL = 0x0;
-	private static final int STATE_SCROLLING = 0x1;
-	private static final int MIN_VELOCITY = 6000;
-	private static final int MIN_VERTICAL_DISTANCE = 50;
-
-	private float mDownMotionX;
-	private float mDownMotionY;
-	private int mTouchState = STATE_NORMAL;
+	protected static final int TOUCH_STATE_NORMAL = 0x0;
+	protected static final int TOUCH_STATE_SCROLLING = 0x1;
+	protected static final int MIN_VELOCITY = 6000;
+	protected static final int MIN_VERTICAL_DISTANCE = 50;
+	protected static final float SCROLL_COEFFICIENT = 1.0F;
 
 	private float mLeftMenuWidth = 0.25F;
 	private int mLeftMenuWidthPixels = 0;
@@ -31,6 +25,10 @@ public class SlideMenuLayout extends ViewGroup {
 	private int mRightMenuWidthPixels = 0;
 	private View mRightSlideMenu;
 	private boolean mRightSlideMenuEnabled = false;
+
+	private float mDownMotionX;
+	private float mDownMotionY;
+	private int mTouchState = TOUCH_STATE_NORMAL;
 
 	private Scroller mScroller;
 	private GestureDetector mGestureDetector;
@@ -180,7 +178,7 @@ public class SlideMenuLayout extends ViewGroup {
 	@Override
 	public boolean onInterceptTouchEvent(MotionEvent ev) {
 		final int action = ev.getAction();
-		if (action == MotionEvent.ACTION_MOVE && mTouchState == STATE_SCROLLING)
+		if (action == MotionEvent.ACTION_MOVE && mTouchState == TOUCH_STATE_SCROLLING)
 			return true;
 		switch (action) {
 		case MotionEvent.ACTION_DOWN:
@@ -189,10 +187,8 @@ public class SlideMenuLayout extends ViewGroup {
 			mGestureDetector.onTouchEvent(ev);
 			break;
 		case MotionEvent.ACTION_MOVE:
-			final float x = ev.getX();
-			final float y = ev.getY();
-			if (Math.abs(x - mDownMotionX) > 2 * Math.abs(y - mDownMotionY)) {
-				mTouchState = STATE_SCROLLING;
+			if (Math.abs(ev.getX() - mDownMotionX) > 2 * Math.abs(ev.getY() - mDownMotionY)) {
+				mTouchState = TOUCH_STATE_SCROLLING;
 				return true;
 			}
 			break;
@@ -204,7 +200,7 @@ public class SlideMenuLayout extends ViewGroup {
 	public boolean onTouchEvent(MotionEvent ev) {
 		switch (ev.getAction()) {
 		case MotionEvent.ACTION_UP:
-			mTouchState = STATE_NORMAL;
+			mTouchState = TOUCH_STATE_NORMAL;
 			final int pos = getScrollX();
 			if (pos < 0) {
 				if (-pos > getLeftMenuWidthF() / 2)
@@ -231,8 +227,7 @@ public class SlideMenuLayout extends ViewGroup {
 
 		@Override
 		public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-			final int dis = (int) ((distanceX - 0.5) / 1.0) + mScroller.getFinalX();
-			Log.d(TAG, dis + "");
+			final int dis = (int) (distanceX / SCROLL_COEFFICIENT) + mScroller.getFinalX();
 			if (dis < 0 && Math.abs(dis) >= getLeftMenuWidthF())
 				openLeftSlideMenu();
 			else if (dis > 0 && Math.abs(dis) >= getRightMenuWidthF())
