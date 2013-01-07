@@ -16,7 +16,7 @@ public class SlideMenuLayout extends ViewGroup {
 	protected static final int TOUCH_STATE_SCROLLING = 0x1;
 	protected static final int TOUCH_STATE_FORECAST = 0x2;
 	protected static final float SCROLL_COEFFICIENT = 1.0F;
-	protected static final int CLICK_CORRECTION_COEFFICIENT = 2;
+	protected static final int CLICK_CORRECTION_COEFFICIENT = 3;
 
 	private float mLeftMenuWidth = 0.25F;
 	private int mLeftMenuWidthPixels = 0;
@@ -205,7 +205,8 @@ public class SlideMenuLayout extends ViewGroup {
 			}
 			break;
 		case MotionEvent.ACTION_MOVE:
-			if (Math.abs(ev.getX() - mDownMotionX) > 2 * Math.abs(ev.getY() - mDownMotionY)) {
+			mMoveTimesCounter++;
+			if (mMoveTimesCounter > CLICK_CORRECTION_COEFFICIENT && (Math.abs(ev.getX() - mDownMotionX) > 2 * Math.abs(ev.getY() - mDownMotionY))) {
 				mTouchState = TOUCH_STATE_SCROLLING;
 				return true;
 			}
@@ -219,7 +220,7 @@ public class SlideMenuLayout extends ViewGroup {
 		switch (ev.getAction()) {
 		case MotionEvent.ACTION_MOVE:
 			mMoveTimesCounter++;
-			if (TOUCH_STATE_FORECAST == mTouchState && mMoveTimesCounter > CLICK_CORRECTION_COEFFICIENT)
+			if (mMoveTimesCounter > CLICK_CORRECTION_COEFFICIENT && TOUCH_STATE_FORECAST == mTouchState)
 				mTouchState = TOUCH_STATE_SCROLLING;
 			break;
 		case MotionEvent.ACTION_UP:
