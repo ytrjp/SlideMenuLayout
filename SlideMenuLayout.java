@@ -1,6 +1,7 @@
 package com.darktiny.view;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
@@ -183,6 +184,19 @@ public class SlideMenuLayout extends ViewGroup {
 			mDownMotionX = ev.getX();
 			mDownMotionY = ev.getY();
 			mGestureDetector.onTouchEvent(ev);
+			if (getLeftSlideMenuEnabled()) {
+				final Rect frame = new Rect();
+				mLeftSlideMenu.getHitRect(frame);
+				if (!frame.contains((int) (mDownMotionX - getLeftMenuWidthF()), (int) mDownMotionY))
+					return true;
+			}
+			if (getRightSlideMenuEnabled()) {
+				final Rect frame = new Rect();
+				mRightSlideMenu.getHitRect(frame);
+				if (!frame.contains((int) (mDownMotionX + getRightMenuWidthF()), (int) mDownMotionY))
+					return true;
+			}
+
 			break;
 		case MotionEvent.ACTION_MOVE:
 			if (Math.abs(ev.getX() - mDownMotionX) > 2 * Math.abs(ev.getY() - mDownMotionY)) {
