@@ -14,7 +14,9 @@ public class SlideMenuLayout extends ViewGroup {
 
 	protected static final int TOUCH_STATE_NORMAL = 0x0;
 	protected static final int TOUCH_STATE_SCROLLING = 0x1;
+	protected static final int TOUCH_STATE_FORECAST = 0x2;
 	protected static final float SCROLL_COEFFICIENT = 1.0F;
+	protected static final int CLICK_CORRECTION_COEFFICIENT = 2;
 
 	private float mLeftMenuWidth = 0.25F;
 	private int mLeftMenuWidthPixels = 0;
@@ -27,6 +29,7 @@ public class SlideMenuLayout extends ViewGroup {
 
 	private float mDownMotionX;
 	private float mDownMotionY;
+	private int mMoveTimesCounter = 0;
 	private int mTouchState = TOUCH_STATE_NORMAL;
 
 	private Scroller mScroller;
@@ -138,12 +141,6 @@ public class SlideMenuLayout extends ViewGroup {
 		return mRightSlideMenuEnabled;
 	}
 
-	private void smoothHorizontalScrollTo(int fx) {
-		int dx = fx - mScroller.getFinalX();
-		mScroller.startScroll(mScroller.getFinalX(), 0, dx, 0);
-		postInvalidate();
-	}
-
 	public void openLeftSlideMenu() {
 		mLeftSlideMenuEnabled = true;
 		smoothHorizontalScrollTo((int) -getLeftMenuWidthF());
@@ -158,6 +155,12 @@ public class SlideMenuLayout extends ViewGroup {
 		mLeftSlideMenuEnabled = false;
 		mRightSlideMenuEnabled = false;
 		smoothHorizontalScrollTo(0);
+	}
+
+	private void smoothHorizontalScrollTo(int fx) {
+		int dx = fx - mScroller.getFinalX();
+		mScroller.startScroll(mScroller.getFinalX(), 0, dx, 0);
+		postInvalidate();
 	}
 
 	@Override
@@ -181,22 +184,25 @@ public class SlideMenuLayout extends ViewGroup {
 			return true;
 		switch (action) {
 		case MotionEvent.ACTION_DOWN:
+			mMoveTimesCounter = 0;
 			mDownMotionX = ev.getX();
 			mDownMotionY = ev.getY();
 			mGestureDetector.onTouchEvent(ev);
 			if (getLeftSlideMenuEnabled()) {
 				final Rect frame = new Rect();
 				mLeftSlideMenu.getHitRect(frame);
-				if (!frame.contains((int) (mDownMotionX - getLeftMenuWidthF()), (int) mDownMotionY))
+				if (!frame.contains((int) (mDownMotionX - getLeftMenuWidthF()), (int) mDownMotionY)) {
+					mTouchState = TOUCH_STATE_FORECAST;
 					return true;
-			}
-			if (getRightSlideMenuEnabled()) {
+				}
+			} else if (getRightSlideMenuEnabled()) {
 				final Rect frame = new Rect();
 				mRightSlideMenu.getHitRect(frame);
-				if (!frame.contains((int) (mDownMotionX + getRightMenuWidthF()), (int) mDownMotionY))
+				if (!frame.contains((int) (mDownMotionX + getRightMenuWidthF()), (int) mDownMotionY)) {
+					mTouchState = TOUCH_STATE_FORECAST;
 					return true;
+				}
 			}
-
 			break;
 		case MotionEvent.ACTION_MOVE:
 			if (Math.abs(ev.getX() - mDownMotionX) > 2 * Math.abs(ev.getY() - mDownMotionY)) {
@@ -211,8 +217,18 @@ public class SlideMenuLayout extends ViewGroup {
 	@Override
 	public boolean onTouchEvent(MotionEvent ev) {
 		switch (ev.getAction()) {
+		case MotionEvent.ACTION_MOVE:
+			mMoveTimesCounter++;
+			if (TOUCH_STATE_FORECAST == mTouchState && mMoveTimesCounter > CLICK_CORRECTION_COEFFICIENT)
+				mTouchState = TOUCH_STATE_SCROLLING;
+			break;
 		case MotionEvent.ACTION_UP:
+			final int state = mTouchState;
 			mTouchState = TOUCH_STATE_NORMAL;
+			if (TOUCH_STATE_FORECAST == state) {
+				reset();
+				return true;
+			}
 			final int pos = getScrollX();
 			if (-pos > getLeftMenuWidthF() / 2)
 				openLeftSlideMenu();
