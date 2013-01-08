@@ -16,7 +16,7 @@ public class SlideMenuLayout extends ViewGroup {
 	protected static final int TOUCH_STATE_SCROLLING = 0x1;
 	protected static final int TOUCH_STATE_FORECAST = 0x2;
 	protected static final float SCROLL_COEFFICIENT = 1.0F;
-	protected static final int CLICK_CORRECTION_COEFFICIENT = 3;
+	protected static final int CLICK_CORRECTION_COEFFICIENT = 1;
 
 	private float mLeftMenuWidth = 0.25F;
 	private int mLeftMenuWidthPixels = 0;
@@ -152,12 +152,16 @@ public class SlideMenuLayout extends ViewGroup {
 	}
 
 	public void reset() {
+		smoothHorizontalScrollTo(0);
 		mLeftSlideMenuEnabled = false;
 		mRightSlideMenuEnabled = false;
-		smoothHorizontalScrollTo(0);
 	}
 
 	private void smoothHorizontalScrollTo(int fx) {
+		if (getLeftSlideMenuEnabled() && fx > 0)
+			return;
+		if (getRightSlideMenuEnabled() && fx < 0)
+			return;
 		int dx = fx - mScroller.getFinalX();
 		mScroller.startScroll(mScroller.getFinalX(), 0, dx, 0);
 		postInvalidate();
