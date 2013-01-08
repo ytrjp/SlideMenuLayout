@@ -30,6 +30,8 @@ public class SlideMenuLayout extends ViewGroup {
 	private float mDownMotionX;
 	private float mDownMotionY;
 	private int mMoveTimesCounter = 0;
+	private float mUnTouchableOffsetStart = -1;
+	private float mUnTouchableOffsetEnd = -1;
 	private int mTouchState = TOUCH_STATE_NORMAL;
 
 	private Scroller mScroller;
@@ -103,6 +105,11 @@ public class SlideMenuLayout extends ViewGroup {
 			return getWidth() * mRightMenuWidth;
 		else
 			return mRightMenuWidthPixels;
+	}
+
+	public void setUnTouchableOffset(float start, float end) {
+		mUnTouchableOffsetStart = start;
+		mUnTouchableOffsetEnd = end;
 	}
 
 	public void setLeftMenuWidth(float width) {
@@ -209,8 +216,12 @@ public class SlideMenuLayout extends ViewGroup {
 			}
 			break;
 		case MotionEvent.ACTION_MOVE:
+			final float x = ev.getX();
+			final float y = ev.getY();
+			if (mUnTouchableOffsetStart < y && y < mUnTouchableOffsetEnd)
+				return false;
 			mMoveTimesCounter++;
-			if (mMoveTimesCounter > CLICK_CORRECTION_COEFFICIENT && (Math.abs(ev.getX() - mDownMotionX) > 2 * Math.abs(ev.getY() - mDownMotionY))) {
+			if (mMoveTimesCounter > CLICK_CORRECTION_COEFFICIENT && (Math.abs(x - mDownMotionX) > Math.abs(y - mDownMotionY))) {
 				mTouchState = TOUCH_STATE_SCROLLING;
 				return true;
 			}
